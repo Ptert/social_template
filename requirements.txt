@@ -1,0 +1,5 @@
+loguru==0.7.2
+inquirer==3.2.1
+termcolor==2.4.0
+better-automation==2.0.2
+web3==6.14.0
