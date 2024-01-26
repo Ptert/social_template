@@ -2,16 +2,13 @@ import traceback
 
 import asyncio
 
-from tasks.overworld import OverWorld
 from data.config import logger, completed_tasks, tasks_lock
 
 
 async def start_task(account_data, option):
     try:
         if option == 1:
-            current_task = OverWorld(account_data)
-            await current_task.start_tasks()
-            await current_task.async_session.close()
+            pass
     except TypeError:
         pass
 

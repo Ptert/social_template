@@ -6,21 +6,28 @@ from utils.create_files import create_files
 from utils.user_menu import get_action
 from utils.import_info import get_accounts_info
 from utils.adjust_policy import set_windows_event_loop_policy
-from data.config import TWITTER_TOKENS, PROXYS, PRIVATE_KEYS, logger
+from data.config import TWITTER_TOKENS, PROXYS, PRIVATE_KEYS, logger, EMAIL_DATA
 from settings.settings import ASYNC_SEMAPHORE
-from tasks.main import start_limited_task
+from db_api.database import initialize_db
+from db_api.start_import import ImportToDB
+from utils.create_task import (
+    get_start
+)
 
 
-async def main():
+def main():
     twitter_tokens: list[str] = get_accounts_info(TWITTER_TOKENS)
     proxies: list[str] = get_accounts_info(PROXYS)
     private_keys: list[str] = get_accounts_info(PRIVATE_KEYS)
+    email_data: list[str] = get_accounts_info(EMAIL_DATA)
 
     cycled_proxies_list = itertools.cycle(proxies) if proxies else None
 
     logger.info(f'Загружено в twitter_tokens.txt {len(twitter_tokens)} аккаунтов \n'
                 f'\t\t\t\t\t\t\tЗагружено в proxys.txt {len(proxies)} прокси \n'
-                f'\t\t\t\t\t\t\tЗагружено в private_keys.txt {len(private_keys)} приватных ключей \n')
+                f'\t\t\t\t\t\t\tЗагружено в private_keys.txt {len(private_keys)} приватных ключей \n'
+                f'\t\t\t\t\t\t\tЗагружено в email_data.txt {len(email_data)} почт \n'
+                )
 
     formatted_data: list = [{
             'twitter_token': twitter_tokens.pop(0) if twitter_tokens else None,
@@ -35,20 +42,21 @@ async def main():
 
     if user_choice == '   1) Импорт в базу данных':
 
-        pass
-        #await ImportToDB.add_account_to_db(accounts_data=formatted_data)
+        asyncio.run(ImportToDB.add_account_to_db(accounts_data=formatted_data))
 
-    elif user_choice == '   2) Войти с помощью приватного ключа':
+    elif user_choice == '   2) Регистрация на galxe и привязка почты/твиттера':
 
-        tasks = []
-        for account_data in formatted_data:
-            task = asyncio.create_task(start_limited_task(semaphore, formatted_data, account_data))
-            tasks.append(task)
+        asyncio.run(get_start(semaphore))
 
-        await asyncio.wait(tasks)
+    else:
+        logger.error('ВЫБРАНО НЕВЕРНОЕ ДЕЙСТВИЕ')
 
 
 if __name__ == "__main__":
-    create_files()
-    set_windows_event_loop_policy()
-    asyncio.run(main())
+    try:
+        asyncio.run(initialize_db())
+        create_files()
+        set_windows_event_loop_policy()
+        main()
+    except TypeError:
+        logger.info('Программа завершена')

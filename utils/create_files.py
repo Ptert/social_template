@@ -1,7 +1,7 @@
 import os
 from typing import Union
 
-from data.config import IMPORTANT_FILES, ACCOUNTS_DIR, STATUS_DIR, logger
+from data.config import IMPORTANT_FILES, ACCOUNTS_DIR, STATUS_DIR, ABIS_DIR, logger
 
 
 def join_path(path: Union[str, tuple, list]) -> str:
@@ -33,5 +33,6 @@ def touch(path: Union[str, tuple, list], file: bool = False) -> bool:
 def create_files():
     touch(ACCOUNTS_DIR)
     touch(STATUS_DIR)
+    touch(ABIS_DIR)
     for path in IMPORTANT_FILES:
         touch(path=path, file=True)

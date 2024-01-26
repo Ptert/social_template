@@ -1,5 +1,6 @@
-from typing import Optional, Union
+import inspect
 from decimal import Decimal
+from typing import Optional, Union
 
 import asyncio
 from web3 import Web3
@@ -8,7 +9,12 @@ from eth_utils import to_wei, from_wei
 from dataclasses import dataclass
 from web3.contract import AsyncContract
 
-from data.config import logger
+from data.config import ABIS_DIR, logger
+from settings.settings import SWAP_AMOUNT_FROM, SWAP_AMOUNT_TO
+from libs.pretty_utils.miscellaneous.files import read_json
+from libs.py_eth_async.data.models import GWei, RawContract
+from libs.pretty_utils.type_functions.classes import Singleton
+from libs.py_eth_async.data.models import DefaultABIs
 
 
 class AutoRepr:
@@ -38,6 +44,141 @@ class Networks:
         coin_symbol='ETH',
         explorer='https://etherscan.io/',
     )
+
+
+@dataclass
+class FromTo:
+    from_: Union[int, float]
+    to_: Union[int, float]
+
+
+class BaseContract(RawContract):
+    def __init__(self,
+                 title,
+                 address,
+                 abi,
+                 min_value: Optional[float] = 0,
+                 stable: Optional[bool] = False,
+                 belongs_to: Optional[str] = "",
+                 decimals: Optional[int] = 18,
+                 token_out_name: Optional[str] = '',
+                 ):
+        super().__init__(address, abi)
+        self.title = title
+        self.min_value = min_value
+        self.stable = stable
+        self.belongs_to = belongs_to  # Имя помойки например AAVE
+        self.decimals = decimals
+        self.token_out_name = token_out_name
+
+
+class SwapInfo:
+    def __init__(self, token_from: BaseContract, token_to: BaseContract, swap_platform: BaseContract):
+        self.token_from = token_from
+        self.token_to = token_to
+        self.swap_platform = swap_platform
+
+
+class Settings(Singleton, AutoRepr):
+    def __init__(self):
+        self.bera_amount_for_swap: FromTo = FromTo(
+            from_=SWAP_AMOUNT_FROM, to_=SWAP_AMOUNT_TO
+        )
+
+
+settings = Settings()
+
+
+class Routers(Singleton):
+    """
+    An instance with router contracts
+        variables:
+            ROUTER: BaseContract
+            ROUTER.title = any
+    """
+
+    # EXAMPLE = BaseContract(
+    #     title="BEX_WETH", address='0x5806E416dA447b267cEA759358cF22Cc41FAE80F',
+    #     abi=read_json(path=(ABIS_DIR, 'blank.json'))
+    # )
+
+
+class Tokens(Singleton):
+    """
+    An instance with token contracts
+        variables:
+            TOKEN: BaseContract
+            TOKEN.title = symbol from OKLINK
+    """
+    EXAMPLE = BaseContract(
+        title="WBERA", address='0x5806E416dA447b267cEA759358cF22Cc41FAE80F',
+        abi=DefaultABIs.Token
+    )
+
+    @staticmethod
+    def get_token_list():
+        return [
+            value for name, value in inspect.getmembers(Tokens)
+            if isinstance(value, BaseContract)
+        ]
+
+
+class Pools(Singleton):
+    """
+        An instance with pool contracts
+            variables:
+                POOL: BaseContract
+                POOL.TITLE = any
+    """
+    EXAMPLE = BaseContract(
+        title="BERA_STGUSDC", address='0x36af4fbab8ebe58b4effe0d5d72ceffc6efc650a',
+        abi=DefaultABIs.Token
+    )
+
+
+class Lending_Tokens(Singleton):
+    """
+        An instance with lending contracts
+            variables:
+                LENDING_TOKEN: BaseContract
+                LENDING_TOKEN.title = symbol from Oklink
+    """
+    EXAMPLE = BaseContract(
+        title='aHONEY', address='0x7EeCA4205fF31f947EdBd49195a7A88E6A91161B',
+        abi=DefaultABIs.Token,
+        belongs_to="BEND"
+    )
+
+    @staticmethod
+    def get_token_list():
+        return [
+            value for name, value in inspect.getmembers(Lending_Tokens)
+            if isinstance(value, BaseContract)
+        ]
+
+
+class LiquidityTokens(Singleton):
+    """
+        An instance with LP contracts
+            variables:
+                LP_TOKEN: BaseContract
+                LP_TOKEN.title = symbol from Oklink
+     """
+
+    # SYNCSWAP_WETH_USDC = BaseContract(
+    #     title='USDC/WETH cSLP', address='0x814a23b053fd0f102aeeda0459215c2444799c70',
+    #     abi=read_json(path=(ABIS_DIR, 'sync_swap_liquidity.json')),
+    #     belongs_to='SyncSwapLiquidity',
+    #     token_out_name='USDC',
+    #     decimals=18
+    # )
+
+    @staticmethod
+    def get_token_list():
+        return [
+            value for name, value in inspect.getmembers(LiquidityTokens)
+            if isinstance(value, BaseContract)
+        ]
 
 
 class TokenAmount:
