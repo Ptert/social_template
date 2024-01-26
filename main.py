@@ -32,7 +32,8 @@ def main():
     formatted_data: list = [{
             'twitter_token': twitter_tokens.pop(0) if twitter_tokens else None,
             'proxy': next(cycled_proxies_list) if cycled_proxies_list else None,
-            'private_key': private_key
+            'private_key': private_key,
+            'email_data': email_data.pop(0) if email_data else None,
         } for private_key in private_keys
     ]
 
